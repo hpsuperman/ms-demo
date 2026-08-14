@@ -99,7 +99,6 @@ ms-demo/
 - **实体**：User（继承 BaseEntity），status 用枚举 UserStatus，roles 用字符串（UserRole 枚举）；`@TableName("t_user")`
 - **JWT**：jjwt 0.12.5，`Keys.hmacShaKeyFor` 要求 secret ≥ 32 字节；claims 含 userId/phone/role
 - **表结构**：见 `ms-user/src/main/resources/db/migration/V1__create_user_table.sql`
-- ⚠️ 注意：JwtUtil **目录是 `util/` 但包声明 `utils`**（带 s）——能编译但目录/包名不一致，建议统一为 `utils`
 
 ## 常用命令
 
