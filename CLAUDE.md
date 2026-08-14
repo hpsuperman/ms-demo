@@ -4,7 +4,7 @@
 
 **ms-demo**：Maven 多模块分布式微服务学习骨架（Spring Cloud Alibaba），把单体 `java-app` 的功能重新从 0 到 1 实现为微服务。
 
-- **当前状态**：骨架已跑通。ms-common / ms-file / ms-gateway 完整可用；**ms-user / ms-order 只有启动类和配置，无业务代码**——业务重建尚未开始
+- **当前状态**：骨架已跑通。ms-common / ms-file / ms-gateway 完整可用；**ms-user 已有注册/登录/验证码业务**；ms-order 仍是骨架（仅启动类 + MybatisPlusConfig）
 - **当前目标**：从 0 到 1 重建业务，一次一个服务。功能与接口参考 java-app（见"目标功能清单"），**数据库表结构自行设计，不沿用 java-app**
 - 技术栈：JDK 17 / Maven 3.9.9 / Spring Boot 3.2.4 / Spring Cloud 2023.0.1 / Spring Cloud Alibaba 2023.0.1.0 / Nacos 2.3.2 / MyBatis Plus 3.5.12 / MySQL 8.0 / Redis / MinIO / Lombok
 - 参考实现：`D:\hpsuperman\project\java-app`（单体，功能与接口的参考）
@@ -39,10 +39,10 @@ java -jar ms-user/target/ms-user-1.0.0.jar  # 启动服务
 ms-demo/
 ├── pom.xml         父工程：packaging=pom，三个 BOM 统一版本
 ├── ms-common/      公共模块：ApiResponse / PageResponse / BaseEntity / ErrorCode / BusinessException / GlobalExceptionHandler / RedisConfig / RedisUtil
-├── ms-user/        用户服务 8081（骨架：仅启动类 + MybatisPlusConfig，业务待重建）
-├── ms-order/       订单服务 8082（骨架：仅启动类 + MybatisPlusConfig，业务待重建）
-├── ms-file/        文件服务 8083（完整：MinIO 上传下载，见 ms-file）
-└── ms-gateway/     网关 8080：路由 /api/user/** → lb://ms-user 等
+├── ms-user/        用户服务 3081（注册/登录/验证码 + JWT，见 ms-user）
+├── ms-order/       订单服务 3082（骨架：仅启动类 + MybatisPlusConfig，业务待重建）
+├── ms-file/        文件服务 3083（完整：MinIO 上传下载，见 ms-file）
+└── ms-gateway/     网关 3080：路由 /api/user/** → lb://ms-user 等
 ```
 
 包名统一 `com.example.ms.*`（common 在 `com.example.ms.common` / `.exception`，服务在 `com.example.ms.{user,order,file,gateway}`）。
@@ -57,6 +57,7 @@ ms-demo/
 - **分层**：Controller → Service → Mapper（MyBatis Plus BaseMapper）；实体继承 BaseEntity（id/createdAt/updatedAt 自动填充），MybatisPlusConfig 提供分页插件 + MetaObjectHandler
 - **响应/异常**：`ApiResponse<T>(code, message, data, timestamp)`；分页 `PageResponse` + `Page`；`BusinessException(ErrorCode)` + GlobalExceptionHandler
 - **Redis 基础设施**：ms-common 提供 RedisConfig（key string / value JSON 带类型，支持 LocalDateTime）+ RedisUtil；服务加 `spring.data.redis.*` 即自动生效
+- **环境配置（profile 拆分）**：每个服务三个 yml——`application.yml`（默认 `active: dev`）、`application-dev.yml`、`application-prod.yml`；**密钥一律 `${环境变量}` 占位，无默认值**，绝不写死在 yml。本地/服务器通过环境变量注入（本机已 setx 用户级变量，含 DB_PASSWORD / REDIS_PASSWORD / JWT_SECRET / MINIO_ACCESS_KEY / MINIO_SECRET_KEY）。生产用 `SPRING_PROFILES_ACTIVE=prod` 覆盖
 - **数据库迁移（Flyway）**：SQL 写 `resources/db/migration/V<版本>__<描述>.sql`；**共用库必须各服务独立 `spring.flyway.table`**（`flyway_user_history` / `flyway_order_history`…），否则 checksum 冲突；`baseline-on-migrate: true`、`clean-disabled: true`；**已执行迁移文件不能改内容**（校验 checksum），只能新增 V+1
 - **金额**：以「分」存 Integer
 - **软删除**：`deleted_at DATETIME`，Java 层 `@TableLogic`（删除=now()，未删=null）
@@ -65,10 +66,10 @@ ms-demo/
 
 | 模块 | 端口 | 端点 | 状态 |
 |---|---|---|---|
-| ms-user | 8081 | — | 骨架，无业务接口 |
-| ms-order | 8082 | — | 骨架，无业务接口 |
-| ms-file | 8083 | POST `/api/file/upload` · GET `/api/file/download/{*key}` | 已实现（MinIO） |
-| ms-gateway | 8080 | 路由 `/api/{user,order,file}/**` | 已配 |
+| ms-user | 3081 | GET `/user/captcha` · POST `/user/register` · POST `/user/login` | 已实现 |
+| ms-order | 3082 | — | 骨架，无业务接口 |
+| ms-file | 3083 | POST `/api/file/upload` · GET `/api/file/download/{*key}` | 已实现（MinIO） |
+| ms-gateway | 3080 | 路由 `/api/{user,order,file}/**` | 已配 |
 
 ## 目标功能清单（java-app 功能 → 规划微服务，功能参考）
 

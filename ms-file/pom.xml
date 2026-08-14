@@ -12,7 +12,7 @@
 
     <artifactId>ms-file</artifactId>
     <name>ms-file</name>
-    <description>文件服务（MinIO 对象存储，注册到 Nacos，端口 8083）</description>
+    <description>文件服务（MinIO 对象存储，注册到 Nacos，端口 3083）</description>
 
     <dependencies>
         <!-- Web -->

@@ -1,7 +1,3 @@
-# 开发环境配置（提交）。环境相关项用 ${} 占位，运行期由环境变量注入，绝不写死密钥。
-spring:
-  datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/ms_demo?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+# 开发环境配置（提交）。当前 dev 与 application.yml（base）无差异，无需覆盖。
+# 未来有开发环境专属配置时写在这里，例如：不同的数据库 URL。
+# 密钥仍走环境变量（${DB_PASSWORD} 等），本文件不写死任何密钥。

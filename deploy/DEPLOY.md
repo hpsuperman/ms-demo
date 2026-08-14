@@ -7,20 +7,21 @@
 
 ## 0. 配置外置化（已完成，本机已改好）
 
-四个服务的 `application.yml` 已把写死值改成 `${环境变量:默认值}`（默认值=本机能跑的值），服务器上由 systemd 的
-`Environment`
-注入覆盖。打包产物已更新，默认值下本机已验证正常。
+每个服务三个 yml：`application.yml`（默认 `active: dev`）+ `application-dev.yml` + `application-prod.yml`。
+**密钥一律 `${环境变量}` 占位、无默认值**，本地靠用户级环境变量注入，服务器由 systemd 的 `Environment` 注入。
+生产环境用 `SPRING_PROFILES_ACTIVE=prod` 覆盖。
 
 各服务外置化字段：
 
 | 服务         | 外置化字段                                                               |
 |------------|---------------------------------------------------------------------|
-| ms-user    | NACOS_ADDR、REDIS_HOST/REDIS_PASSWORD、DB_URL/DB_USERNAME/DB_PASSWORD |
+| ms-user    | NACOS_ADDR、REDIS_HOST/REDIS_PASSWORD、DB_URL/DB_USERNAME/DB_PASSWORD、**JWT_SECRET** |
 | ms-order   | NACOS_ADDR、DB_URL/DB_USERNAME/DB_PASSWORD                           |
 | ms-file    | NACOS_ADDR、MINIO_ENDPOINT/MINIO_ACCESS_KEY/MINIO_SECRET_KEY         |
 | ms-gateway | NACOS_ADDR                                                          |
 
 环境变量名与 `deploy/*.service` 模板里 `Environment` 一一对应，部署时无需再改代码。
+**注意**：所有密钥均无 yml 默认值，漏配任一个变量服务即启动失败。
 
 ---
 

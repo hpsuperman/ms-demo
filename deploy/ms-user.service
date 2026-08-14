@@ -6,12 +6,13 @@ After=network.target
 Type=simple
 User=app
 WorkingDirectory=/opt/ms-user
-Environment="DB_URL=jdbc:mysql://localhost:3306/ms_demo?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=utf-8"
+Environment="DB_URL=jdbc:mysql://localhost:3306/ms_demo?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
 Environment="DB_USERNAME=root"
 Environment="DB_PASSWORD=改这里填数据库密码"
 Environment="NACOS_ADDR=127.0.0.1:8848"
 Environment="REDIS_HOST=127.0.0.1"
 Environment="REDIS_PASSWORD=改这里填Redis密码"
+Environment="JWT_SECRET=改这里填和本机一致的JWT密钥"
 ExecStart=/usr/bin/java -jar /opt/ms-user/app.jar
 ExecStop=/bin/kill -15 $MAINPID
 Restart=always

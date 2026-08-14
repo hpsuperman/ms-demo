@@ -12,7 +12,7 @@
 
     <artifactId>ms-user</artifactId>
     <name>ms-user</name>
-    <description>用户服务（注册到 Nacos，端口 8081）</description>
+    <description>用户服务（注册到 Nacos，端口 3081）</description>
 
     <dependencies>
         <!-- BCrypt 密码加密（只加 crypto，不加 starter-security，避免触发登录拦截） -->

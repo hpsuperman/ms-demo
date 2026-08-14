@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=app
 WorkingDirectory=/opt/ms-order
-Environment="DB_URL=jdbc:mysql://localhost:3306/ms_demo?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=utf-8"
+Environment="DB_URL=jdbc:mysql://localhost:3306/ms_demo?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
 Environment="DB_USERNAME=root"
 Environment="DB_PASSWORD=改这里填数据库密码"
 Environment="NACOS_ADDR=127.0.0.1:8848"

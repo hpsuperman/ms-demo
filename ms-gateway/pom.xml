@@ -12,7 +12,7 @@
 
     <artifactId>ms-gateway</artifactId>
     <name>ms-gateway</name>
-    <description>网关（统一入口，端口 8080）</description>
+    <description>网关（统一入口，端口 3080）</description>
 
     <dependencies>
         <!-- 网关基于 WebFlux 响应式栈，不能引入 spring-boot-starter-web，否则启动冲突 -->
