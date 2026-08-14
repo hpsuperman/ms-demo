@@ -2,6 +2,9 @@ server:
   port: 3082
 
 spring:
+  profiles:
+    # 激活本地 profile，加载 application-local.yml（已 gitignore，不提交）
+    active: local
   application:
     name: ms-order
   cloud:
