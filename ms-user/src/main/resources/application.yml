@@ -10,35 +10,25 @@ spring:
     name: ms-user
   cloud:
     nacos:
-      discovery:
-        # Nacos 注册中心地址
-        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
-  data:
-    redis:
-      # Redis 基础设施（统一序列化在 ms-common 的 RedisConfig）
-      host: ${REDIS_HOST:127.0.0.1}
-      port: 6379
-      password: ${REDIS_PASSWORD}
-      database: 1
-  datasource:
-    # 所有服务共用一个库 ms_demo
-    url: ${DB_URL:jdbc:mysql://localhost:3306/ms_demo?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-  flyway:
-    # 数据库迁移：SQL 写 src/main/resources/db/migration/，命名 V<版本>__<描述>.sql
-    table: flyway_user_history   # 关键：共用 ms_demo 库，history 表必须独立，避免版本号冲突
-    baseline-on-migrate: true    # 已存在的库/表不报错，允许基线
-    check-location: true
-    validate-on-migrate: true
-    clean-disabled: true         # 禁止 clean 删库
+      # 公共地址：注册中心(discovery) 和 配置中心(config) 共用
+      server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+  config:
+    # 从 Nacos 配置中心拉取：ms-user.yaml（共享）+ ms-user-dev.yaml（dev 环境）
+    # optional: 前缀表示 Nacos 里缺 dataId 也不报错
+    import:
+      - optional:nacos:${spring.application.name}.yaml
+      - optional:nacos:${spring.application.name}-${spring.profiles.active}.yaml
 
-mybatis-plus:
-  configuration:
-    map-underscore-to-camel-case: true
-  global-config:
-    banner: false
+# 环境相关配置（datasource / redis / flyway / mybatis-plus / jwt.expiration）
+# 已迁到 Nacos 配置中心：dataId = ms-user.yaml 与 ms-user-dev.yaml（group=DEFAULT_GROUP）
+# 本地不重复配置；Nacos 未就绪或缺 dataId 时服务无法启动（配置中心优先的设计）
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+# 密钥仍走环境变量注入；jwt.secret 与网关共用同一密钥，网关用它校验 token
 jwt:
   secret: ${JWT_SECRET}
-  expiration: 604800000   # 7 天，毫秒

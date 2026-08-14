@@ -1,0 +1,22 @@
+# ms-user 开发环境配置（Nacos 配置中心 dataId：ms-user-dev.yaml，group=DEFAULT_GROUP）
+# 同步源：本文件 deploy/nacos/ms-user-dev.yaml
+# 敏感值一律 ${} 占位，由本机环境变量注入，不写死
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: 6379
+      password: ${REDIS_PASSWORD}
+      database: 1
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/ms_demo?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  flyway:
+    # 关键：共用 ms_demo 库，history 表必须独立，避免版本号冲突
+    table: flyway_user_history
+    baseline-on-migrate: true
+    check-location: true
+    validate-on-migrate: true
+    clean-disabled: true

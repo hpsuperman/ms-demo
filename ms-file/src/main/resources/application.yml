@@ -6,19 +6,25 @@ spring:
     # 默认 dev 环境；生产用 SPRING_PROFILES_ACTIVE=prod 覆盖
     active: dev
   application:
+    # 服务名：注册到 Nacos 的名字，网关和其他服务靠这个名字找到它
     name: ms-file
   cloud:
     nacos:
-      discovery:
-        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
-  servlet:
-    multipart:
-      # 上传大小限制，超限由 ms-common 的 GlobalExceptionHandler 兜底（FILE_UPLOAD_FAILED）
-      max-file-size: 10MB
-      max-request-size: 10MB
+      # 公共地址：注册中心(discovery) 和 配置中心(config) 共用
+      server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+  config:
+    # 从 Nacos 配置中心拉取：ms-file.yaml（共享）+ ms-file-dev.yaml（dev 环境）
+    # optional: 前缀表示 Nacos 里缺 dataId 也不报错
+    import:
+      - optional:nacos:${spring.application.name}.yaml
+      - optional:nacos:${spring.application.name}-${spring.profiles.active}.yaml
 
-minio:
-  endpoint: ${MINIO_ENDPOINT:http://127.0.0.1:9000}
-  access-key: ${MINIO_ACCESS_KEY}
-  secret-key: ${MINIO_SECRET_KEY}
-  bucket: ms-file
+# 环境相关配置（minio / multipart 上传限制）
+# 已迁到 Nacos 配置中心：dataId = ms-file.yaml 与 ms-file-dev.yaml（group=DEFAULT_GROUP）
+# 本地不重复配置；Nacos 未就绪或缺 dataId 时服务无法启动（配置中心优先的设计）
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
