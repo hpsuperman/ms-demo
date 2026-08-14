@@ -20,7 +20,6 @@ derby.log
 
 # ---- 本地环境配置（含数据库/Redis 密码，不入库） ----
 .env
-application-local.yml
 
 # ---- 系统 ----
 .DS_Store

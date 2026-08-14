@@ -1,6 +1,5 @@
 # 开发环境配置（提交）。环境相关项用 ${} 占位，运行期由环境变量注入，绝不写死密钥。
-# 本地开发默认走 local profile（见 application.yml 的 spring.profiles.active），
-# 此文件仅在显式激活 dev 时加载。
+# application.yml 默认 active: dev，本文件随本地开发自动加载。
 spring:
   cloud:
     nacos:

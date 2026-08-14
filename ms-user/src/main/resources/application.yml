@@ -3,8 +3,8 @@ server:
 
 spring:
   profiles:
-    # 激活本地 profile，加载 application-local.yml（已 gitignore，不提交）
-    active: local
+    # 默认 dev 环境；生产用 SPRING_PROFILES_ACTIVE=prod 覆盖
+    active: dev
   application:
     # 服务名：注册到 Nacos 的名字，网关和其他服务靠这个名字找到它
     name: ms-user

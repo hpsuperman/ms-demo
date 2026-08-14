@@ -1,5 +1,0 @@
-# 本地开发专用配置模板（提交本文件，仅模板）。
-# 用法：复制本文件为 application-local.yml（该文件名已被 .gitignore 排除，不会提交），填入真实值。
-minio:
-  access-key: 你的MinIO用户名
-  secret-key: 你的MinIO密码
