@@ -14,7 +14,6 @@
     <modules>
         <module>ms-common</module>
         <module>ms-user</module>
-        <module>ms-order</module>
         <module>ms-file</module>
         <module>ms-gateway</module>
     </modules>
@@ -63,6 +62,22 @@
                 <groupId>com.example</groupId>
                 <artifactId>ms-common</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+            <!-- JWT：不在任何 BOM，统一在这里管版本（ms-user 签发 / ms-gateway 校验共用） -->
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-api</artifactId>
+                <version>0.12.5</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-impl</artifactId>
+                <version>0.12.5</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-jackson</artifactId>
+                <version>0.12.5</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

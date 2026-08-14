@@ -1,6 +1,6 @@
 # ms-demo Linux 服务器部署手册
 
-> 目标：一台全新 Ubuntu 22.04 服务器，从零把 4 个微服务跑起来。
+> 目标：一台全新 Ubuntu 22.04 服务器，从零把 3 个微服务跑起来。
 > 前提：**必须先做第 0 步配置外置化**，否则 yml 里的写死地址/密码无法被环境变量覆盖。
 
 ---
@@ -16,7 +16,6 @@
 | 服务         | 外置化字段                                                               |
 |------------|---------------------------------------------------------------------|
 | ms-user    | NACOS_ADDR、REDIS_HOST/REDIS_PASSWORD、DB_URL/DB_USERNAME/DB_PASSWORD、**JWT_SECRET** |
-| ms-order   | NACOS_ADDR、DB_URL/DB_USERNAME/DB_PASSWORD                           |
 | ms-file    | NACOS_ADDR、MINIO_ENDPOINT/MINIO_ACCESS_KEY/MINIO_SECRET_KEY         |
 | ms-gateway | NACOS_ADDR                                                          |
 
@@ -128,17 +127,16 @@ sudo systemctl daemon-reload && sudo systemctl enable --now minio
 ```bash
 # 本机打包后上传（在 ms-demo 目录执行）
 scp ms-user/target/ms-user-1.0.0.jar   root@服务器:/tmp/
-scp ms-order/target/ms-order-1.0.0.jar root@服务器:/tmp/
 scp ms-file/target/ms-file-1.0.0.jar   root@服务器:/tmp/
 scp ms-gateway/target/ms-gateway-1.0.0.jar root@服务器:/tmp/
 ```
 
 ```bash
 # 服务器上
-sudo mkdir -p /opt/ms-user /opt/ms-order /opt/ms-file /opt/ms-gateway
+sudo mkdir -p /opt/ms-user /opt/ms-file /opt/ms-gateway
 sudo mv /tmp/ms-*.jar /opt/ms-*/app.jar    # 每个目录一个，统一叫 app.jar
 sudo chown -R app:app /opt/ms-*
-sudo cp deploy/ms-user.service deploy/ms-order.service deploy/ms-file.service /etc/systemd/system/
+sudo cp deploy/ms-user.service deploy/ms-file.service /etc/systemd/system/
 sudo cp deploy/ms-gateway.service /etc/systemd/system/
 # 记得把模板里 3 个"改这里填"的密码改成实际值
 sudo systemctl daemon-reload
@@ -174,15 +172,14 @@ sudo nginx -t && sudo systemctl reload nginx
 ## 9. 启动顺序 + 验证
 
 ```bash
-# 顺序：Nacos(已自启) → mysql/redis/minio(已自启) → 4 个应用服务
-sudo systemctl enable --now ms-user ms-order ms-file
+# 顺序：Nacos(已自启) → mysql/redis/minio(已自启) → 3 个应用服务
+sudo systemctl enable --now ms-user ms-file
 sudo systemctl enable --now ms-gateway        # 网关最后，等其它服务注册完
 ```
 
 ```bash
 # 验证（服务器本机）
 curl http://127.0.0.1:3081/user/1              # ms-user 直连
-curl -X POST "http://127.0.0.1:3082/order/create?userId=1&amount=100"  # Feign 跨服务
 curl http://127.0.0.1:3080/user/1              # 网关路由
 # 对外
 curl http://你的域名/user/1                      # nginx → 网关 → ms-user
