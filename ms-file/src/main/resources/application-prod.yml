@@ -1,0 +1,11 @@
+# 生产环境配置（提交）。敏感值一律 ${} 占位，由部署侧环境变量 / Secret 注入，绝不写死。
+spring:
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_ADDR}
+minio:
+  endpoint: ${MINIO_ENDPOINT}
+  access-key: ${MINIO_ACCESS_KEY}
+  secret-key: ${MINIO_SECRET_KEY}
+  bucket: ms-file
