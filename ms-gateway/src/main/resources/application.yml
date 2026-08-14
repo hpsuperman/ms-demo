@@ -1,0 +1,35 @@
+server:
+  port: 3080
+
+spring:
+  application:
+    name: ms-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+    gateway:
+      # 浏览器(web)访问放开跨域，否则 chrome 里登录请求会被 CORS 拦截
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+      routes:
+        # 规则：路径以 /api/user/ 开头 → 转发到 ms-user 服务
+        - id: ms-user
+          uri: lb://ms-user
+          predicates:
+            - Path=/user/**
+        # 路径以 /api/order/ 开头 → 转发到 ms-order 服务
+        - id: ms-order
+          uri: lb://ms-order
+          predicates:
+            - Path=/order/**
+        # 路径以 /api/file/ 开头 → 转发到 ms-file 服务（MinIO 上传下载）
+        - id: ms-file
+          uri: lb://ms-file
+          predicates:
+            - Path=/file/**

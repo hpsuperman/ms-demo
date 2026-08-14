@@ -1,0 +1,41 @@
+server:
+  port: 3081
+
+spring:
+  application:
+    # 服务名：注册到 Nacos 的名字，网关和其他服务靠这个名字找到它
+    name: ms-user
+  cloud:
+    nacos:
+      discovery:
+        # Nacos 注册中心地址
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+  data:
+    redis:
+      # Redis 基础设施（统一序列化在 ms-common 的 RedisConfig）
+      host: ${REDIS_HOST:127.0.0.1}
+      port: 6379
+      password: ${REDIS_PASSWORD}
+      database: 1
+  datasource:
+    # 所有服务共用一个库 ms_demo
+    url: ${DB_URL:jdbc:mysql://localhost:3306/ms_demo?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  flyway:
+    # 数据库迁移：SQL 写 src/main/resources/db/migration/，命名 V<版本>__<描述>.sql
+    table: flyway_user_history   # 关键：共用 ms_demo 库，history 表必须独立，避免版本号冲突
+    baseline-on-migrate: true    # 已存在的库/表不报错，允许基线
+    check-location: true
+    validate-on-migrate: true
+    clean-disabled: true         # 禁止 clean 删库
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 604800000   # 7 天，毫秒

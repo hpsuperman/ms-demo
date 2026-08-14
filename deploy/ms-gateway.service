@@ -1,0 +1,16 @@
+[Unit]
+Description=ms-gateway 网关 (3080)
+After=network.target
+
+[Service]
+Type=simple
+User=app
+WorkingDirectory=/opt/ms-gateway
+Environment="NACOS_ADDR=127.0.0.1:8848"
+ExecStart=/usr/bin/java -jar /opt/ms-gateway/app.jar
+ExecStop=/bin/kill -15 $MAINPID
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

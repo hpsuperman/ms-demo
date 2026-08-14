@@ -1,0 +1,19 @@
+[Unit]
+Description=ms-file 文件服务 (3083)
+After=network.target
+
+[Service]
+Type=simple
+User=app
+WorkingDirectory=/opt/ms-file
+Environment="NACOS_ADDR=127.0.0.1:8848"
+Environment="MINIO_ENDPOINT=http://127.0.0.1:9000"
+Environment="MINIO_ACCESS_KEY=改这里填MinIO用户名"
+Environment="MINIO_SECRET_KEY=改这里填MinIO密码"
+ExecStart=/usr/bin/java -jar /opt/ms-file/app.jar
+ExecStop=/bin/kill -15 $MAINPID
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

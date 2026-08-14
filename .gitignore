@@ -1,0 +1,27 @@
+# ---- Maven / Java ----
+target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# ---- IDE ----
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# ---- 运行产生的临时文件/日志 ----
+logs/
+work/
+derby.log
+*.log
+
+# ---- 本地环境配置（含数据库/Redis 密码，不入库） ----
+.env
+application-local.yml
+
+# ---- 系统 ----
+.DS_Store
+Thumbs.db
