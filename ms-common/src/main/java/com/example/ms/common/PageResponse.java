@@ -1,12 +1,14 @@
 package com.example.ms.common;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import java.util.List;
 import java.util.function.Function;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.domain.Pageable;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -57,4 +59,9 @@ public class PageResponse<T> {
   public static <T> PageResponse<T> empty() {
     return new PageResponse<>(List.of(), 0, 20, 0, 0, true, true);
   }
+
+  public static <T> Page<T> toMpPage(Pageable pageable) {
+    return new Page<>(pageable.getPageNumber(), pageable.getPageSize());
+  }
+
 }

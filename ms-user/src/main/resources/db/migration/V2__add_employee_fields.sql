@@ -1,0 +1,5 @@
+ALTER TABLE t_user
+    ADD COLUMN employee_no VARCHAR(20) NULL COMMENT '工号',
+    ADD COLUMN department VARCHAR(50) NULL COMMENT '部门',
+    ADD COLUMN position VARCHAR(50) NULL COMMENT '职位',
+    ADD COLUMN email VARCHAR(100) NULL COMMENT '邮箱';

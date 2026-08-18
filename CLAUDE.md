@@ -93,12 +93,20 @@ ms-demo/
 
 ## ms-user 业务现状
 
+### 用户模块
 - **接口**：GET `/user/captcha` · POST `/user/register` · POST `/user/login`
 - **流程**：注册（BCrypt 加密 + 手机号唯一校验）→ 登录（验证码校验 + 密码匹配 + 状态校验 → 签发 JWT）
 - **关键类**：UserController / UserService / CaptchaService / UserConverter(MapStruct) / JwtUtil / UserMapper
-- **实体**：User（继承 BaseEntity），status 用枚举 UserStatus，roles 用字符串（UserRole 枚举）；`@TableName("t_user")`
+- **实体**：User（继承 BaseEntity），status 用枚举 UserStatus，roles 用字符串（UserRole 枚举）；`@TableName("t_user")`；含 `departmentId` 字段关联部门
 - **JWT**：jjwt 0.12.5，`Keys.hmacShaKeyFor` 要求 secret ≥ 32 字节；claims 含 userId/phone/role
-- **表结构**：见 `ms-user/src/main/resources/db/migration/V1__create_user_table.sql`
+- **表结构**：见 `V1__create_user_table.sql`，`V2__add_employee_fields.sql`（员工扩展字段）
+
+### 部门模块
+- **接口**：GET `/department`（树形列表）· GET `/department/detail/{id}` · POST `/department` · PUT `/department/{id}` · DELETE `/department/{id}`
+- **功能**：树形结构（parentId=0 为根节点）/ 同级名称查重 / 防成环 / 有子部门或员工禁止删除 / 软删除
+- **关键类**：DepartmentController / DepartmentService / DepartmentConverter(MapStruct) / DepartmentMapper
+- **实体**：Department（继承 BaseEntity），status 用枚举 DepartmentStatus；`@TableName("t_department")`
+- **表结构**：见 `V3__create_department_table.sql`（同时给 t_user 加了 department_id 字段）
 
 ## 常用命令
 

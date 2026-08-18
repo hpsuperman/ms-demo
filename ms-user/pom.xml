@@ -30,6 +30,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        <!-- AOP：@RequireRole 权限注解的切面实现（比拦截器轻，抛异常走全局异常处理器） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
         <!-- 注册中心：启动时向 Nacos 上报实例 -->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>

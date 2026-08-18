@@ -1,22 +1,25 @@
 package com.example.ms.user.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.example.ms.common.PageResponse;
+import com.example.ms.department.entity.Department;
+import com.example.ms.department.mapper.DepartmentMapper;
 import com.example.ms.exception.BusinessException;
 import com.example.ms.exception.ErrorCode;
 import com.example.ms.user.converter.UserConverter;
-import com.example.ms.user.dto.LoginRequest;
-import com.example.ms.user.dto.LoginResponse;
-import com.example.ms.user.dto.RegisterRequest;
-import com.example.ms.user.dto.RegisterResponse;
+import com.example.ms.user.dto.*;
 import com.example.ms.user.entity.User;
 import com.example.ms.user.entity.UserRole;
 import com.example.ms.user.entity.UserStatus;
 import com.example.ms.user.mapper.UserMapper;
 import com.example.ms.user.utils.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 
 @Service
@@ -25,9 +28,12 @@ public class UserService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final UserConverter userConverter;
+    private final DepartmentMapper departmentMapper;
     private final CaptchaService captchaService;
     private final JwtUtil jwtUtil;
 
+
+    @Transactional
     public RegisterResponse register(RegisterRequest request) {
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>().eq(User::getPhone, request.getPhone());
         User existing = userMapper.selectOne(wrapper);
@@ -46,6 +52,7 @@ public class UserService {
         return userConverter.toDto(user);
     }
 
+    @Transactional
     public LoginResponse login(LoginRequest request) {
         captchaService.verifyCaptcha(request.getCaptchaId(), request.getCaptcha());
 
@@ -65,6 +72,87 @@ public class UserService {
         response.setToken(token);
         response.setUser(userConverter.toDto(user));
         return response;
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<UserResponse> page(String keyword, Pageable pageable) {
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>().orderByDesc(User::getId);
+        if (keyword != null && !keyword.isBlank()) {
+            wrapper.like(User::getNickname, keyword).or().like(User::getPhone, keyword).or().like(User::getEmployeeNo, keyword);
+        }
+        IPage<User> mpPage = userMapper.selectPage(PageResponse.toMpPage(pageable), wrapper);
+        PageResponse<UserResponse> result = PageResponse.from(mpPage, userConverter::toResponse);
+        result.getContent().forEach(this::fillDepartmentName);
+        return result;
+    }
+
+    @Transactional
+    public UserResponse create(UserRequest request) {
+        Long phoneCount = userMapper.selectCount(new LambdaQueryWrapper<User>().eq(User::getPhone, request.getPhone()));
+        if (phoneCount > 0) {
+            throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE, "手机号已被使用");
+        }
+        Long empCount = userMapper.selectCount(new LambdaQueryWrapper<User>().eq(User::getEmployeeNo, request.getEmployeeNo()));
+        if (empCount > 0) {
+            throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE, "工号已被使用");
+        }
+        User user = userConverter.toEntity(request);
+        user.setPasswordHash(passwordEncoder.encode("123456"));
+        user.setStatus(UserStatus.ACTIVE);
+        user.setRoles("USER");
+
+        userMapper.insert(user);
+        return userConverter.toResponse(user);
+    }
+
+    @Transactional(readOnly = true)
+    public UserResponse detail(Long id) {
+        User user = userMapper.selectById(id);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "用户不存在");
+        }
+        UserResponse response = userConverter.toResponse(user);
+        fillDepartmentName(response);
+        return response;
+
+    }
+
+    @Transactional
+    public UserResponse update(Long id, UserRequest request) {
+        User user = userMapper.selectById(id);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "用户不存在");
+        }
+        Long phoneCount = userMapper.selectCount(new LambdaQueryWrapper<User>().eq(User::getPhone, request.getPhone()).ne(User::getId, id));
+
+        if (phoneCount > 0) {
+            throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE, "手机号已被他人使用");
+        }
+        Long empCount = userMapper.selectCount(new LambdaQueryWrapper<User>().eq(User::getEmployeeNo, request.getEmployeeNo()).ne(User::getId, id));
+        if (empCount > 0) {
+            throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE, "工号已被他人使用");
+        }
+
+        userConverter.updateEntity(request, user);
+        userMapper.updateById(user);
+        return userConverter.toResponse(user);
+
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        User user = userMapper.selectById(id);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "用户不存在");
+        }
+        userMapper.deleteById(user);
+    }
+
+    private void fillDepartmentName(UserResponse response) {
+        if (response.getDepartmentId() != null) {
+            Department department = departmentMapper.selectById(response.getDepartmentId());
+            response.setDepartmentName(department != null ? department.getName() : null);
+        }
     }
 }
 

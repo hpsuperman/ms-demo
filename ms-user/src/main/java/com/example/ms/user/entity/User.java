@@ -23,6 +23,10 @@ public class User extends BaseEntity {
     private LocalDate birthday;
     private UserStatus status;
     private String roles;
+    private String employeeNo;
+    private Long departmentId;
+    private String position;
+    private String email;
 
     @TableLogic(value = "null", delval = "now()")
     private LocalDateTime deletedAt;
