@@ -94,11 +94,12 @@ ms-demo/
 ## ms-user 业务现状
 
 ### 用户模块
-- **接口**：GET `/user/captcha` · POST `/user/register` · POST `/user/login`
-- **流程**：注册（BCrypt 加密 + 手机号唯一校验）→ 登录（验证码校验 + 密码匹配 + 状态校验 → 签发 JWT）
+- **接口**：GET `/user/captcha` · POST `/user/register` · POST `/user/login` · GET `/user/page` · POST `/user` · GET `/user/{id}` · PUT `/user/{id}` · DELETE `/user/{id}` · GET `/user/me`
+- **流程**：注册（BCrypt 加密 + 手机号唯一校验 + 默认 USER 角色）→ 登录（验证码校验 + 密码匹配 + 状态校验 → 签发 JWT）
 - **关键类**：UserController / UserService / CaptchaService / UserConverter(MapStruct) / JwtUtil / UserMapper
-- **实体**：User（继承 BaseEntity），status 用枚举 UserStatus，roles 用字符串（UserRole 枚举）；`@TableName("t_user")`；含 `departmentId` 字段关联部门
-- **JWT**：jjwt 0.12.5，`Keys.hmacShaKeyFor` 要求 secret ≥ 32 字节；claims 含 userId/phone/role
+- **实体**：User（继承 BaseEntity），status 用枚举 UserStatus；`@TableName("t_user")`；含 `departmentId` 字段关联部门
+- **权限**：`@RequireRole({"ADMIN"})` 声明式校验（RoleAspect 切面）；用户角色已迁到关联表 t_user_role，User.roles 字段不再使用
+- **JWT**：jjwt 0.12.5，`Keys.hmacShaKeyFor` 要求 secret ≥ 32 字节；claims 含 userId/phone/**role（逗号分隔多角色）**；登录时从 t_user_role 关联 t_role 查角色
 - **表结构**：见 `V1__create_user_table.sql`，`V2__add_employee_fields.sql`（员工扩展字段）
 
 ### 部门模块
@@ -107,6 +108,14 @@ ms-demo/
 - **关键类**：DepartmentController / DepartmentService / DepartmentConverter(MapStruct) / DepartmentMapper
 - **实体**：Department（继承 BaseEntity），status 用枚举 DepartmentStatus；`@TableName("t_department")`
 - **表结构**：见 `V3__create_department_table.sql`（同时给 t_user 加了 department_id 字段）
+
+### 角色模块（RBAC 简化版）
+- **接口**：GET `/role` · GET `/role/detail/{id}` · POST `/role` · PUT `/role/{id}` · DELETE `/role/{id}`
+- **功能**：角色增删改查；`name` 唯一（数据库唯一约束 + Service 层查重）；有用户绑定的角色禁止删除
+- **关键类**：RoleController / RoleService / RoleConverter(MapStruct) / RoleMapper / UserRoleMapper
+- **实体**：Role（继承 BaseEntity）；UserRole（纯关联表，**不继承 BaseEntity**，user_id+role_id 联合主键）
+- **多角色**：一用户多角色走 t_user_role；JWT role claim 存逗号分隔字符串；RoleAspect 拆分后任一匹配即通过；网关 X-User-Role 原样透传
+- **表结构**：见 `V5__create_role_table.sql`（t_role + 初始三角色），`V6__create_user_role_table.sql`（t_user_role）
 
 ## 常用命令
 

@@ -1,0 +1,10 @@
+CREATE TABLE t_role
+(
+    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name        VARCHAR(50)  NOT NULL COMMENT '名字',
+    description VARCHAR(255) NOT NULL COMMENT '描述',
+    created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_name (name)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;

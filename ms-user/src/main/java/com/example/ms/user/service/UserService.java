@@ -7,15 +7,20 @@ import com.example.ms.department.entity.Department;
 import com.example.ms.department.mapper.DepartmentMapper;
 import com.example.ms.exception.BusinessException;
 import com.example.ms.exception.ErrorCode;
+import com.example.ms.role.entity.Role;
+import com.example.ms.role.entity.UserRole;
+import com.example.ms.role.mapper.RoleMapper;
+import com.example.ms.role.mapper.UserRoleMapper;
 import com.example.ms.user.converter.UserConverter;
 import com.example.ms.user.dto.*;
 import com.example.ms.user.entity.User;
-import com.example.ms.user.entity.UserRole;
 import com.example.ms.user.entity.UserStatus;
 import com.example.ms.user.mapper.UserMapper;
 import com.example.ms.user.utils.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+
+import java.util.List;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -31,6 +36,8 @@ public class UserService {
     private final DepartmentMapper departmentMapper;
     private final CaptchaService captchaService;
     private final JwtUtil jwtUtil;
+    private final UserRoleMapper userRoleMapper;
+    private final RoleMapper roleMapper;
 
 
     @Transactional
@@ -46,9 +53,15 @@ public class UserService {
         user.setPhone(request.getPhone());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setStatus(UserStatus.ACTIVE);
-        user.setRoles(String.valueOf(UserRole.USER));
 
         userMapper.insert(user);
+
+        Role defaultRole = roleMapper.selectOne(new LambdaQueryWrapper<Role>().eq(Role::getName, "USER"));
+        UserRole userRole = new UserRole();
+        userRole.setUserId(user.getId());
+        userRole.setRoleId(defaultRole.getId());
+        userRoleMapper.insert(userRole);
+
         return userConverter.toDto(user);
     }
 
@@ -67,7 +80,8 @@ public class UserService {
             throw new BusinessException(ErrorCode.FORBIDDEN, "账号已禁用");
         }
 
-        String token = jwtUtil.generateToken(user.getId(), user.getPhone(), user.getRoles());
+        List<String> roles = getRoleNames(user.getId());
+        String token = jwtUtil.generateToken(user.getId(), user.getPhone(), String.join(",", roles));
         LoginResponse response = new LoginResponse();
         response.setToken(token);
         response.setUser(userConverter.toDto(user));
@@ -99,9 +113,15 @@ public class UserService {
         User user = userConverter.toEntity(request);
         user.setPasswordHash(passwordEncoder.encode("123456"));
         user.setStatus(UserStatus.ACTIVE);
-        user.setRoles("USER");
 
         userMapper.insert(user);
+
+        Role defaultRole = roleMapper.selectOne(new LambdaQueryWrapper<Role>().eq(Role::getName, "USER"));
+        UserRole userRole = new UserRole();
+        userRole.setUserId(user.getId());
+        userRole.setRoleId(defaultRole.getId());
+        userRoleMapper.insert(userRole);
+
         return userConverter.toResponse(user);
     }
 
@@ -153,6 +173,18 @@ public class UserService {
             Department department = departmentMapper.selectById(response.getDepartmentId());
             response.setDepartmentName(department != null ? department.getName() : null);
         }
+    }
+
+    private List<String> getRoleNames(Long userId) {
+        List<UserRole> userRoles = userRoleMapper.selectList(
+                new LambdaQueryWrapper<UserRole>().eq(UserRole::getUserId, userId));
+        if (userRoles.isEmpty()) {
+            return List.of();
+        }
+        List<Long> roleIds = userRoles.stream().map(UserRole::getRoleId).toList();
+        return roleMapper.selectBatchIds(roleIds).stream()
+                .map(Role::getName)
+                .toList();
     }
 }
 
