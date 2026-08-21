@@ -12,6 +12,8 @@ spring:
     nacos:
       # 公共地址：注册中心(discovery) 和 配置中心(config) 共用
       server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+      config:
+        encode: UTF-8
   config:
     # 从 Nacos 配置中心拉取：ms-user.yaml（共享）+ ms-user-dev.yaml（dev 环境）
     # optional: 前缀表示 Nacos 里缺 dataId 也不报错

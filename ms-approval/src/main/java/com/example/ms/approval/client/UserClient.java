@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 
-@FeignClient(name = "ms-user")
+@FeignClient(name = "ms-user", contextId = "userClient")
 public interface UserClient {
 
     @GetMapping("/user/{id}")

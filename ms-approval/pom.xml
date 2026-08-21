@@ -90,9 +90,15 @@
             <version>2.5.0</version>
         </dependency>
 
+        <!-- 服务间调用：Feign（跨服务只传 DTO） -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+        <!-- 路由负载均衡：Feign lb://服务名 需要（openfeign 不传递引入，必须显式加） -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-loadbalancer</artifactId>
         </dependency>
     </dependencies>
     <build>
