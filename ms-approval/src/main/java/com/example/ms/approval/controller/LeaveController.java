@@ -50,7 +50,7 @@ public class LeaveController {
         return ApiResponse.success(leaveService.detail(UserContext.getUserId(), id));
     }
 
-    @Operation(summary = "请假详情")
+    @Operation(summary = "撤销请假")
     @PutMapping("/cancel/{id}")
     public ApiResponse<Void> cancel(@PathVariable Long id) {
         leaveService.cancel(UserContext.getUserId(), id);

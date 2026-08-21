@@ -196,6 +196,9 @@ public class UserService {
         }
         List<UserRole> userRoles = userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>().eq(UserRole::getRoleId, role.getId()));
         List<Long> userIds = userRoles.stream().map(UserRole::getUserId).toList();
+        if (userIds.isEmpty()) {
+            return List.of();
+        }
 
         List<User> users = userMapper.selectByIds(userIds);
         return users.stream().map(userConverter::toResponse).toList();

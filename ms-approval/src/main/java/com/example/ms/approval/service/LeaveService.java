@@ -25,11 +25,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
-
 public class LeaveService {
     private final LeaveApprovalConverter leaveApprovalConverter;
     private final LeaveMapper leaveMapper;
@@ -53,6 +51,9 @@ public class LeaveService {
         DepartmentDTO department = departmentClient.getDepartment(user.getDepartmentId()).getData();
         if (department == null) {
             throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "查询不到该部门");
+        }
+        if (department.getLeaderId() == null) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "所在部门未设置负责人，无法提交申请");
         }
         Leave leave = leaveApprovalConverter.toEntity(request);
         leave.setUserId(userId);
@@ -93,7 +94,7 @@ public class LeaveService {
             if (userId.equals(leave.getUserId())) {
                 throw new BusinessException(ErrorCode.FORBIDDEN, "不能审批自己的申请");
             }
-            if (!department.getLeaderId().equals(userId)) {
+            if (!userId.equals(department.getLeaderId())) {
                 throw new BusinessException(ErrorCode.FORBIDDEN, "暂无权限");
             }
         } else if (currentNode == ApprovalNode.HR) {
