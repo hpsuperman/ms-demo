@@ -1,0 +1,30 @@
+server:
+  port: 3082
+
+spring:
+  profiles:
+    # 默认 dev 环境；生产用 SPRING_PROFILES_ACTIVE=prod 覆盖
+    active: dev
+  application:
+    # 服务名：注册到 Nacos 的名字，网关和其他服务靠这个名字找到它
+    name: ms-approval
+  cloud:
+    nacos:
+      # 公共地址：注册中心(discovery) 和 配置中心(config) 共用
+      server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+  config:
+    # 从 Nacos 配置中心拉取：ms-approval.yaml（共享）+ ms-approval-dev.yaml（dev 环境）
+    # optional: 前缀表示 Nacos 里缺 dataId 也不报错
+    import:
+      - optional:nacos:${spring.application.name}.yaml
+      - optional:nacos:${spring.application.name}-${spring.profiles.active}.yaml
+
+# 环境相关配置（datasource / redis / flyway / mybatis-plus / jwt.expiration）
+# 已迁到 Nacos 配置中心：dataId = ms-approval.yaml 与 ms-approval-dev.yaml（group=DEFAULT_GROUP）
+# 本地不重复配置；Nacos 未就绪或缺 dataId 时服务无法启动（配置中心优先的设计）
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

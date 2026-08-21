@@ -31,6 +31,12 @@ spring:
           uri: lb://ms-file
           predicates:
             - Path=/file/**
+
+        # 路径以 /leave/ 开头 → 转发到 ms-approval 服务
+        - id: ms-approval
+          uri: lb://ms-approval
+          predicates:
+            - Path=/leave/**
   config:
     # 从 Nacos 配置中心拉取：ms-gateway.yaml（共享）+ ms-gateway-dev.yaml（dev 环境）
     # optional: 前缀表示 Nacos 里缺 dataId 也不报错

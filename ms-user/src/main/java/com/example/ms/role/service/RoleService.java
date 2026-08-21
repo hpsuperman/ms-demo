@@ -13,6 +13,7 @@ import com.example.ms.role.mapper.RoleMapper;
 import com.example.ms.role.mapper.UserRoleMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -23,13 +24,14 @@ public class RoleService {
     private final RoleConverter roleConverter;
     private final UserRoleMapper userRoleMapper;
 
+    @Transactional(readOnly = true)
     public List<RoleResponse> list() {
         return roleMapper.selectList(null)
                 .stream()
                 .map(roleConverter::toResponse)
                 .toList();
     }
-
+    @Transactional
     public RoleResponse create(RoleRequest request) {
         LambdaQueryWrapper<Role> wrapper = new LambdaQueryWrapper<>();
         if (roleMapper.selectCount(wrapper.eq(Role::getName, request.getName())) > 0) {
@@ -40,6 +42,7 @@ public class RoleService {
         return roleConverter.toResponse(role);
     }
 
+    @Transactional(readOnly = true)
     public RoleResponse detail(Long id) {
         Role role = roleMapper.selectById(id);
         if (role == null) {
@@ -48,6 +51,7 @@ public class RoleService {
         return roleConverter.toResponse(role);
     }
 
+    @Transactional
     public RoleResponse update(Long id, RoleRequest request) {
         Role role = roleMapper.selectById(id);
         if (role == null) {
@@ -62,6 +66,7 @@ public class RoleService {
         return roleConverter.toResponse(role);
     }
 
+    @Transactional
     public void delete(Long id) {
         Role role = roleMapper.selectById(id);
         if (role == null) {

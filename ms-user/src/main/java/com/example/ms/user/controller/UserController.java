@@ -15,6 +15,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/user")
 @RequiredArgsConstructor
@@ -80,5 +82,9 @@ public class UserController {
     public ApiResponse<Void> delete(@PathVariable Long id) {
         userService.delete(id);
         return ApiResponse.success();
+    }
+    @GetMapping("/role/{roleName}")
+    public ApiResponse<List<UserResponse>> listByRole(@PathVariable String roleName){
+        return ApiResponse.success(userService.listByRole(roleName));
     }
 }

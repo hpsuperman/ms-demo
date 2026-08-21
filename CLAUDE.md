@@ -4,7 +4,7 @@
 
 **ms-demo**：Maven 多模块分布式微服务学习项目（Spring Cloud Alibaba）。无固定业务主题，用于从 0 到 1 练习微服务落地。
 
-- **当前状态**：骨架已跑通，基础能力齐备——**Nacos 配置中心 / 网关统一 JWT 鉴权 / traceId 全链路日志 / Actuator 健康检查**均已落地。ms-user 已有注册/登录/验证码 + JWT 业务；ms-file 已有 MinIO 上传/下载（完整）
+- **当前状态**：骨架已跑通，基础能力齐备——**Nacos 配置中心 / 网关统一 JWT 鉴权 / traceId 全链路日志 / Actuator 健康检查**均已落地。ms-user 已有注册/登录/验证码 + JWT 业务；ms-file 已有 MinIO 上传/下载（完整）；ms-approval 已有请假申请 + 两级审批（主管→HR）
 - **当前目标**：逐个服务重建业务，一次一个服务，**数据库表结构自行设计**
 - 技术栈：JDK 17 / Maven / Spring Boot 3.2.4 / Spring Cloud 2023.0.1 / Spring Cloud Alibaba 2023.0.1.0 / Nacos 2.3.2 / MyBatis Plus 3.5.12 / MySQL 8.0 / Redis / MinIO / Lombok / MapStruct
 
@@ -15,6 +15,7 @@ ms-demo/
 ├── pom.xml         父工程：packaging=pom，三个 BOM 统一版本
 ├── ms-common/      公共模块（端口无关）：ApiResponse / PageResponse / BaseEntity / 异常体系 / Redis / TraceIdFilter
 ├── ms-user/        用户服务 3081：注册/登录/验证码 + JWT（已有业务）
+├── ms-approval/    审批服务 3082：请假申请 + 主管→HR 两级审批
 ├── ms-file/        文件服务 3083：MinIO 上传/下载（完整）
 └── ms-gateway/     网关 3080：路由 → lb://服务名 + 统一 JWT 鉴权 + traceId
 ```
@@ -27,6 +28,7 @@ ms-demo/
 |---|---|
 | ms-gateway | 3080 |
 | ms-user | 3081 |
+| ms-approval | 3082 |
 | ms-file | 3083 |
 
 ## 基础设施（本机已开机自启）
@@ -117,6 +119,16 @@ ms-demo/
 - **多角色**：一用户多角色走 t_user_role；JWT role claim 存逗号分隔字符串；RoleAspect 拆分后任一匹配即通过；网关 X-User-Role 原样透传
 - **表结构**：见 `V5__create_role_table.sql`（t_role + 初始三角色），`V6__create_user_role_table.sql`（t_user_role）
 
+## ms-approval 业务现状
+
+### 请假模块（两级审批：主管 → HR）
+- **接口**：POST `/leave` · POST `/leave/{id}/review` · GET `/leave/page` · GET `/leave/detail/{id}` · PUT `/leave/cancel/{id}` · GET `/leave/todo`
+- **流程**：申请（Feign 查部门，冗余 applicantLeaderId → PENDING/主管节点）→ 主管通过（APPROVING/HR 节点）→ HR 通过（APPROVED）；任一级拒绝 → REJECTED；流程中本人可撤销 → CANCELED；节点置 null 表示流程结束
+- **关键类**：LeaveController / LeaveService / LeaveApprovalConverter(MapStruct) / LeaveMapper / ApprovalRecordMapper；Feign：UserClient / DepartmentClient（依赖 ms-user 的 `GET /user/role/{roleName}` 查 HR 名单）
+- **实体**：Leave / ApprovalRecord（均继承 BaseEntity）；状态/节点/类型/动作全用枚举
+- **待办查询**：todoPage 一条嵌套 OR SQL——`(SUPERVISOR节点 且 applicant_leader_id=我) OR (HR节点，仅当我有HR角色)`；HR 判断取 `UserContext.getRole()` 拆逗号，不发 Feign
+- **表结构**：见 `V1__create_leave_tables.sql`（t_leave + t_approval_record），`V2__add_applicant_leader_id.sql`；Flyway history 表 flyway_approval_history
+
 ## 常用命令
 
 ```bash
@@ -143,9 +155,8 @@ java -jar ms-user/target/ms-user-1.0.0.jar  # 启动服务
 
 ## 教学协作约定
 
-- **先讲为什么**：每个概念先讲清它解决什么问题，再讲怎么做
+- **回答简洁**：直奔重点，不啰嗦
 - **先原型后代码**：每个模块先出手机端原型图（纯中文）+ 字段映射表，确认后再建表写代码
 - **一次只讲一个概念**：讲透一个知识点再继续，不连讲一堆
 - **给思路不给代码**：说清思路和关键文件位置，代码由你自己写
 - **写完我 Review**：带行号指出问题，通过后再进入下一步
-- **回答简洁**：直奔重点，不啰嗦

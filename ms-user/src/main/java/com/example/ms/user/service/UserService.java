@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -185,6 +186,19 @@ public class UserService {
         return roleMapper.selectBatchIds(roleIds).stream()
                 .map(Role::getName)
                 .toList();
+    }
+
+    public List<UserResponse> listByRole(String name) {
+        LambdaQueryWrapper<Role> wrapper = new LambdaQueryWrapper<Role>().eq(Role::getName, name);
+        Role role = roleMapper.selectOne(wrapper);
+        if (role == null) {
+            return List.of();
+        }
+        List<UserRole> userRoles = userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>().eq(UserRole::getRoleId, role.getId()));
+        List<Long> userIds = userRoles.stream().map(UserRole::getUserId).toList();
+
+        List<User> users = userMapper.selectByIds(userIds);
+        return users.stream().map(userConverter::toResponse).toList();
     }
 }
 

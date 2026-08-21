@@ -16,6 +16,7 @@
         <module>ms-user</module>
         <module>ms-file</module>
         <module>ms-gateway</module>
+        <module>ms-approval</module>
     </modules>
 
     <properties>
