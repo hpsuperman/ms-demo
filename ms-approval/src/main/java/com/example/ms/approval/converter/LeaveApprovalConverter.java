@@ -14,8 +14,6 @@ import org.mapstruct.Named;
 @Mapper(componentModel = "spring")
 public interface LeaveApprovalConverter {
 
-    LeaveResponse toResponse(Leave leave);
-
     @Mapping(target = "userId", ignore = true)
     @Mapping(target = "durationHours", ignore = true)
     @Mapping(target = "status", ignore = true)

@@ -125,7 +125,7 @@ ms-demo/
 - **接口**：POST `/leave` · POST `/leave/{id}/review` · GET `/leave/page` · GET `/leave/detail/{id}` · PUT `/leave/cancel/{id}` · GET `/leave/todo`
 - **流程**：申请（Feign 查部门，冗余 applicantLeaderId → PENDING/主管节点）→ 主管通过（APPROVING/HR 节点）→ HR 通过（APPROVED）；任一级拒绝 → REJECTED；流程中本人可撤销 → CANCELED；节点置 null 表示流程结束
 - **关键类**：LeaveController / LeaveService / LeaveApprovalConverter(MapStruct) / LeaveMapper / ApprovalRecordMapper；Feign：UserClient / DepartmentClient（依赖 ms-user 的 `GET /user/role/{roleName}` 查 HR 名单）
-- **实体**：Leave / ApprovalRecord（均继承 BaseEntity）；状态/节点/类型/动作全用枚举
+- **实体**：Leave（继承 BaseEntity）/ ApprovalRecord（无 updated_at/deleted_at，不继承 BaseEntity，手动填充 id+createdAt）；状态/节点/类型/动作全用枚举
 - **待办查询**：todoPage 一条嵌套 OR SQL——`(SUPERVISOR节点 且 applicant_leader_id=我) OR (HR节点，仅当我有HR角色)`；HR 判断取 `UserContext.getRole()` 拆逗号，不发 Feign
 - **表结构**：见 `V1__create_leave_tables.sql`（t_leave + t_approval_record），`V2__add_applicant_leader_id.sql`；Flyway history 表 flyway_approval_history
 
@@ -152,6 +152,8 @@ java -jar ms-user/target/ms-user-1.0.0.jar  # 启动服务
 - **Flyway 共用库冲突**：共用库必须各配独立 history 表；已执行迁移文件不能改内容（checksum），只能新增 V+1
 - **Flyway 基线竞态**：共用库 + 独立 history 表，清空库后多服务同时启动，后启动者可能被 `baseline-on-migrate` 打上版本 1 基线，导致它的 V1 被静默忽略。恢复：`DELETE FROM <该服务 history 表>`
 - **MP 3.5.9+ 分页插件拆包**：`PaginationInnerInterceptor` 在独立依赖 `mybatis-plus-jsqlparser`，只引 starter 会分页 total=0 静默失效；需按主版本引
+- **selectByIds 传空集合**：MP 批量查询不判空会生成 `WHERE id IN ()` 直接语法错误，批量查询前必须 `isEmpty()` 提前返回
+- **MP wrapper 嵌套 OR**：`and(w -> ...)` 生成括号隔离 OR（否则泄漏绕过软删除条件）；`.eq(布尔, 字段, 值)` 条件式拼接，false 时悬空 OR 自动丢弃
 
 ## 教学协作约定
 
