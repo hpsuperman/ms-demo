@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/department")
+@RequestMapping("/user/department")
 @RequiredArgsConstructor
 @Tag(name = "部门", description = "部门增删改查")
 public class DepartmentController {

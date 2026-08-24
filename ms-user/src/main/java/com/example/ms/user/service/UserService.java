@@ -18,6 +18,7 @@ import com.example.ms.user.entity.UserStatus;
 import com.example.ms.user.mapper.UserMapper;
 import com.example.ms.user.utils.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;

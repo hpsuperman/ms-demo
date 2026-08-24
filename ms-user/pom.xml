@@ -89,6 +89,12 @@
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-mysql</artifactId>
         </dependency>
+        <!-- 测试：@SpringBootTest / JUnit（版本由 Boot BOM 管理） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- 接口文档：Swagger UI（springdoc 不在 BOM，必须写版本） -->
         <dependency>
             <groupId>org.springdoc</groupId>

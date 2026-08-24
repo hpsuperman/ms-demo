@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/role")
+@RequestMapping("/user/role")
 @RequiredArgsConstructor
 @Tag(name = "角色", description = "角色增删改查")
 public class RoleController {
