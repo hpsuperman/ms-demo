@@ -1,9 +1,11 @@
 package com.example.ms.approval.controller;
 
 import com.example.ms.approval.dto.ApprovalRequest;
+import com.example.ms.approval.dto.DoneItemResponse;
 import com.example.ms.approval.dto.LeaveDetailResponse;
 import com.example.ms.approval.dto.LeaveItemResponse;
 import com.example.ms.approval.dto.LeaveRequest;
+import com.example.ms.approval.enums.ApprovalAction;
 import com.example.ms.approval.enums.LeaveStatus;
 import com.example.ms.approval.service.LeaveService;
 import com.example.ms.common.ApiResponse;
@@ -62,5 +64,13 @@ public class LeaveController {
     public ApiResponse<PageResponse<LeaveItemResponse>> todoPage(
             @PageableDefault(size = 10) Pageable pageable) {
         return ApiResponse.success(leaveService.todoPage(UserContext.getUserId(), pageable));
+    }
+
+    @Operation(summary = "已办分页")
+    @GetMapping("/done")
+    public ApiResponse<PageResponse<DoneItemResponse>> donePage(
+            @RequestParam(required = false) ApprovalAction action,
+            @PageableDefault(size = 10) Pageable pageable) {
+        return ApiResponse.success(leaveService.donePage(UserContext.getUserId(), action, pageable));
     }
 }

@@ -10,6 +10,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 @FeignClient(name = "ms-user", contextId = "departmentClient")
 public interface DepartmentClient {
 
-    @GetMapping("/department/detail/{id}")
+    @GetMapping("/user/department/detail/{id}")
     ApiResponse<DepartmentDTO> getDepartment(@PathVariable("id") Long id);
 }
