@@ -1,4 +1,4 @@
-package com.example.ms.user.config;
+package com.example.ms.common.config;
 
 import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
@@ -8,12 +8,12 @@ import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerIntercept
 import java.time.LocalDateTime;
 
 import org.apache.ibatis.reflection.MetaObject;
-import org.springframework.context.annotation.Bean;
 import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-// MyBatis 自动扫描只认主类所在包（com.example.ms.user），department 等新增包扫不到，必须显式声明
+// MyBatis 自动扫描只认主类所在包，子服务各包（mapper/entity/dto...）扫不到，必须显式声明；**.mapper 只扫 Mapper 接口
 @MapperScan(basePackages = "com.example.ms.**.mapper")
 public class MybatisPlusConfig {
 

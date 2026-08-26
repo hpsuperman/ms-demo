@@ -1,0 +1,12 @@
+### 用户登录（验证码 1111 通用验证码）
+POST http://localhost:3081/user/login
+Content-Type: application/json
+
+{
+  "phone": "13800000000",
+  "password": "123456",
+  "captcha": "1111",
+  "captchaId": "debug"
+}
+
+###

@@ -47,5 +47,17 @@
             <artifactId>mybatis-plus-extension</artifactId>
             <version>${mybatis-plus.version}</version>
         </dependency>
+        <!-- 分页插件（MyBatis Plus 3.5.9 起拆到独立依赖，MybatisPlusConfig 的 PaginationInnerInterceptor 需要） -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
+            <version>${mybatis-plus.version}</version>
+        </dependency>
+        <!-- @MapperScan 注解所在包（不在任何 BOM，版本与服务端 mybatis-plus 3.5.12 传递引入的 mybatis-spring 对齐，3.0.4） -->
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis-spring</artifactId>
+            <version>3.0.4</version>
+        </dependency>
     </dependencies>
 </project>

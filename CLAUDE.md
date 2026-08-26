@@ -4,7 +4,7 @@
 
 **ms-demo**：Maven 多模块分布式微服务学习项目（Spring Cloud Alibaba）。无固定业务主题，用于从 0 到 1 练习微服务落地。
 
-- **当前状态**：骨架已跑通，基础能力齐备——**Nacos 配置中心 / 网关统一 JWT 鉴权 / traceId 全链路日志 / Actuator 健康检查**均已落地。ms-user 已有注册/登录/验证码 + JWT + 部门/角色/公告业务；ms-file 已有 MinIO 上传/下载（完整）；ms-approval 已有请假申请 + 两级审批（主管→HR）+ 已办查询
+- **当前状态**：骨架已跑通，基础能力齐备——**Nacos 配置中心 / 网关统一 JWT 鉴权 / traceId 全链路日志 / Actuator 健康检查**均已落地。ms-user 已有注册/登录/验证码 + JWT + 部门/角色/公告业务；ms-file 已有 MinIO 上传/下载（完整）；ms-approval 已有请假申请 + 两级审批（主管→HR）+ 已办查询；ms-order 已有订单 CRUD
 - **当前目标**：逐个服务重建业务，一次一个服务，**数据库表结构自行设计**
 - 技术栈：JDK 17 / Maven / Spring Boot 3.2.4 / Spring Cloud 2023.0.1 / Spring Cloud Alibaba 2023.0.1.0 / Nacos 2.3.2 / MyBatis Plus 3.5.12 / MySQL 8.0 / Redis / MinIO / Lombok / MapStruct
 
@@ -13,10 +13,11 @@
 ```
 ms-demo/
 ├── pom.xml         父工程：packaging=pom，三个 BOM 统一版本
-├── ms-common/      公共模块（端口无关）：ApiResponse / PageResponse / BaseEntity / 异常体系 / Redis / TraceIdFilter
+├── ms-common/      公共模块（端口无关）：ApiResponse / PageResponse / BaseEntity / 异常体系 / Redis / TraceIdFilter / MybatisPlusConfig / SnowflakeIdUtil
 ├── ms-user/        用户服务 3081：用户/部门/角色/公告 + JWT（已有业务）
 ├── ms-approval/    审批服务 3082：请假申请 + 主管→HR 两级审批
 ├── ms-file/        文件服务 3083：MinIO 上传/下载（完整）
+├── ms-order/       订单服务 3084：订单 CRUD（雪花 ID 订单号）
 └── ms-gateway/     网关 3080：路由 → lb://服务名 + 统一 JWT 鉴权 + traceId
 ```
 
@@ -30,6 +31,7 @@ ms-demo/
 | ms-user | 3081 |
 | ms-approval | 3082 |
 | ms-file | 3083 |
+| ms-order | 3084 |
 
 ## 基础设施（本机已开机自启）
 
@@ -86,7 +88,7 @@ ms-demo/
 - **网关**：Spring Cloud Gateway（WebFlux），**不能引 spring-boot-starter-web**（冲突）；路由 `lb://服务名`（需 loadbalancer）
 - **服务间调用**：Feign —— `@FeignClient(name=...)` + `@EnableFeignClients`；**跨服务只传 DTO**
 - **公共模块扫描**：启动类必须 `@SpringBootApplication(scanBasePackages = "com.example.ms")`，否则扫不到 GlobalExceptionHandler / RedisConfig
-- **分层**：Controller → Service → Mapper（MyBatis Plus BaseMapper）；实体继承 BaseEntity（id/createdAt/updatedAt 自动填充）；MybatisPlusConfig 提供分页插件 + MetaObjectHandler
+- **分层**：Controller → Service → Mapper（MyBatis Plus BaseMapper）；实体继承 BaseEntity（id/createdAt/updatedAt 自动填充）；**MybatisPlusConfig 在 ms-common 统一提供分页插件 + MetaObjectHandler + @MapperScan**（新服务不需要自己建，直接生效）
 - **响应/异常**：`ApiResponse<T>(code, message, data, timestamp)`；分页 `PageResponse` + `Page`；`BusinessException(ErrorCode)` + GlobalExceptionHandler
 - **Jackson 序列化**：ms-common `JacksonConfig` 统一 LocalDateTime 为 `yyyy-MM-dd HH:mm:ss`、LocalDate 为 `yyyy-MM-dd`
 - **Redis**：ms-common 提供 RedisConfig（key string / value JSON 带类型，支持 LocalDateTime）+ RedisUtil；服务加 `spring.data.redis.*` 即生效
@@ -140,6 +142,16 @@ ms-demo/
 - **详情权限**：本人或该单任一审批人可看详情
 - **表结构**：见 `V1__create_leave_tables.sql`（t_leave + t_approval_record），`V2__add_applicant_leader_id.sql`；Flyway history 表 flyway_approval_history
 
+## ms-order 业务现状
+
+### 订单模块（纯 CRUD）
+- **接口**：POST `/order` · GET `/order/page`（可按 status 过滤）· GET `/order/{id}` · PUT `/order/{id}` · DELETE `/order/{id}`
+- **功能**：创建（userId 取 `UserContext`，订单号 `"OD" + SnowflakeIdUtil.nextId()`，状态默认 PENDING）、分页（status 条件式拼接过滤）、详情、修改（全量覆盖）、软删除
+- **关键类**：OrderController / OrderService / OrderConverter(MapStruct) / OrderMapper
+- **实体**：Order（继承 BaseEntity），status 用枚举 OrderStatus（PENDING/PAID/CANCELED）；`@TableName("t_order")`；金额以「分」存 Integer
+- **雪花 ID**：ms-common `SnowflakeIdUtil.nextId()` 生成订单号，多实例部署需 `init(workerId, datacenterId)` 区分
+- **表结构**：见 `V1__create_order_table.sql`（t_order）；Flyway history 表 flyway_order_history
+
 ## 常用命令
 
 ```bash
@@ -165,6 +177,7 @@ java -jar ms-user/target/ms-user-1.0.0.jar  # 启动服务
 - **MP 3.5.9+ 分页插件拆包**：`PaginationInnerInterceptor` 在独立依赖 `mybatis-plus-jsqlparser`，只引 starter 会分页 total=0 静默失效；需按主版本引
 - **selectByIds 传空集合**：MP 批量查询不判空会生成 `WHERE id IN ()` 直接语法错误，批量查询前必须 `isEmpty()` 提前返回
 - **MP wrapper 嵌套 OR**：`and(w -> ...)` 生成括号隔离 OR（否则泄漏绕过软删除条件）；`.eq(布尔, 字段, 值)` 条件式拼接，false 时悬空 OR 自动丢弃
+- **created_at cannot be null**：`@TableField(fill=...)` 字段无条件进 INSERT 列，没配 MetaObjectHandler 就传 null 撞 NOT NULL。MybatisPlusConfig 已统一放 ms-common，新服务引 ms-common 即生效，不用再自己建
 
 ## 教学协作约定
 

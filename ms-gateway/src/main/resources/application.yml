@@ -37,6 +37,11 @@ spring:
           uri: lb://ms-approval
           predicates:
             - Path=/leave/**
+        # 路径以 /order/ 开头 → 转发到 ms-order 服务
+        - id: ms-order
+          uri: lb://ms-order
+          predicates:
+            - Path=/order/**
   config:
     # 从 Nacos 配置中心拉取：ms-gateway.yaml（共享）+ ms-gateway-dev.yaml（dev 环境）
     # optional: 前缀表示 Nacos 里缺 dataId 也不报错

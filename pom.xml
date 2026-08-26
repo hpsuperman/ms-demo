@@ -17,6 +17,7 @@
         <module>ms-file</module>
         <module>ms-gateway</module>
         <module>ms-approval</module>
+        <module>ms-order</module>
     </modules>
 
     <properties>
