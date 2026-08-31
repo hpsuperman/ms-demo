@@ -22,7 +22,8 @@ public class Order extends BaseEntity {
     private Integer amount;
     private OrderStatus status;
     private String remark;
-
+    private LocalDateTime paidAt;
+    private LocalDateTime canceledAt;
     @TableLogic(value = "null", delval = "now()")
     private LocalDateTime deletedAt;
 }

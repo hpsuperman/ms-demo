@@ -15,6 +15,8 @@ public class OrderResponse {
     private Integer amount;
     private String remark;
     private OrderStatus status;
+    private LocalDateTime paidAt;
+    private LocalDateTime canceledAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

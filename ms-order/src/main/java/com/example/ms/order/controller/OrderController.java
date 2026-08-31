@@ -52,4 +52,16 @@ public class OrderController {
         orderService.delete(id);
         return ApiResponse.success();
     }
+
+    @Operation(summary = "支付订单")
+    @PutMapping("/pay/{id}")
+    public ApiResponse<OrderResponse> pay(@PathVariable Long id) {
+        return ApiResponse.success(orderService.pay(id));
+    }
+
+    @Operation(summary = "取消订单")
+    @PutMapping("/cancel/{id}")
+    public ApiResponse<OrderResponse> cancel(@PathVariable Long id) {
+        return ApiResponse.success(orderService.cancel(id));
+    }
 }

@@ -1,0 +1,12 @@
+CREATE TABLE t_product
+(
+    id         BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name       VARCHAR(100) NOT NULL COMMENT '商品名称',
+    price      INT          NOT NULL COMMENT '价格',
+    stock      INT          NOT NULL DEFAULT 1 COMMENT '数量',
+    status     VARCHAR(20)  NOT NULL DEFAULT 'ON_SALE' COMMENT '状态',
+    created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME COMMENT '软删除'
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;

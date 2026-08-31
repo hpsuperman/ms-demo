@@ -70,6 +70,14 @@ public class RedisUtil {
     return n == null ? 0 : n;
   }
 
+  public boolean tryLock(String key, long timeout, TimeUnit unit) {
+    return Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(key, 1, timeout, unit));
+  }
+
+  public void unlock(String key) {
+    redisTemplate.delete(key);
+  }
+
   // ---------- Hash ----------
 
   public void hSet(String key, String field, String value) {

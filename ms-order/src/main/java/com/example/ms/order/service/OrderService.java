@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.example.ms.common.PageResponse;
 import com.example.ms.common.context.UserContext;
+import com.example.ms.common.util.RedisUtil;
 import com.example.ms.common.util.SnowflakeIdUtil;
 import com.example.ms.exception.BusinessException;
 import com.example.ms.exception.ErrorCode;
@@ -18,11 +19,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.concurrent.TimeUnit;
+
 @Service
 @RequiredArgsConstructor
 public class OrderService {
     private final OrderConverter orderConverter;
     private final OrderMapper orderMapper;
+    private final RedisUtil redisUtil;
 
     @Transactional
     public OrderResponse create(OrderRequest request) {
@@ -70,4 +75,51 @@ public class OrderService {
         }
         orderMapper.deleteById(order);
     }
+
+    @Transactional
+    public OrderResponse pay(Long id) {
+        String lockKey = "lock:order:" + id;
+        if (!redisUtil.tryLock(lockKey, 30, TimeUnit.SECONDS)) {
+            throw new BusinessException(ErrorCode.RATE_LIMITED, "订单操作进行中，请稍后再试");
+        }
+        try {
+            Order order = orderMapper.selectById(id);
+            if (order == null) {
+                throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "订单不存在");
+            }
+            if (!order.getStatus().equals(OrderStatus.PENDING)) {
+                throw new BusinessException(ErrorCode.BAD_REQUEST, "当前状态不能支付");
+            }
+            order.setPaidAt(LocalDateTime.now());
+            order.setStatus(OrderStatus.PAID);
+            orderMapper.updateById(order);
+            return orderConverter.toResponse(order);
+        } finally {
+            redisUtil.unlock(lockKey);
+        }
+    }
+
+    @Transactional
+    public OrderResponse cancel(Long id) {
+        String lockKey = "lock:order:" + id;
+        if (!redisUtil.tryLock(lockKey, 30, TimeUnit.SECONDS)) {
+            throw new BusinessException(ErrorCode.RATE_LIMITED, "订单操作进行中，请稍后再试");
+        }
+        try {
+            Order order = orderMapper.selectById(id);
+            if (order == null) {
+                throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "订单不存在");
+            }
+            if (!order.getStatus().equals(OrderStatus.PENDING)) {
+                throw new BusinessException(ErrorCode.BAD_REQUEST, "当前状态不能取消");
+            }
+            order.setCanceledAt(LocalDateTime.now());
+            order.setStatus(OrderStatus.CANCELED);
+            orderMapper.updateById(order);
+            return orderConverter.toResponse(order);
+        } finally {
+            redisUtil.unlock(lockKey);
+        }
+    }
+
 }
