@@ -51,4 +51,11 @@ public class ProductController {
         productService.delete(id);
         return ApiResponse.success();
     }
+
+    @Operation(summary = "增加库存")
+    @PutMapping("/{id}/stock/increase")
+    public ApiResponse<Void> increaseStock(@PathVariable Long id, @RequestParam Integer quantity) {
+        productService.increaseStock(id, quantity);
+        return ApiResponse.success();
+    }
 }

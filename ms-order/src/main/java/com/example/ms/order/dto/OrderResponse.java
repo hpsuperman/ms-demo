@@ -4,14 +4,13 @@ import com.example.ms.order.enums.OrderStatus;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class OrderResponse {
     private Long id;
     private String orderNo;
     private Long userId;
-    private String productName;
-    private Integer quantity;
     private Integer amount;
     private String remark;
     private OrderStatus status;
@@ -19,4 +18,5 @@ public class OrderResponse {
     private LocalDateTime canceledAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private List<OrderItemResponse> items;
 }

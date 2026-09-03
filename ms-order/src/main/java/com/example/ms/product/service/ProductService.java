@@ -66,4 +66,13 @@ public class ProductService {
         }
         productMapper.deleteById(product);
     }
+
+    @Transactional
+    public void increaseStock(Long id, Integer quantity) {
+        Product product = productMapper.selectById(id);
+        if (product == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "查询不到当前商品");
+        }
+        productMapper.increaseStock(id, quantity);
+    }
 }

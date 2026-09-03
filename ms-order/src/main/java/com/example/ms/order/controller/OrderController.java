@@ -40,12 +40,6 @@ public class OrderController {
         return ApiResponse.success(orderService.detail(id));
     }
 
-    @Operation(summary = "更新订单")
-    @PutMapping("/{id}")
-    public ApiResponse<OrderResponse> update(@PathVariable Long id, @Valid @RequestBody OrderRequest request) {
-        return ApiResponse.success(orderService.update(id, request));
-    }
-
     @Operation(summary = "删除订单")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable Long id) {

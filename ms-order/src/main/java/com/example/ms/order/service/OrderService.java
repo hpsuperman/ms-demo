@@ -9,33 +9,73 @@ import com.example.ms.common.util.SnowflakeIdUtil;
 import com.example.ms.exception.BusinessException;
 import com.example.ms.exception.ErrorCode;
 import com.example.ms.order.converter.OrderConverter;
+import com.example.ms.order.converter.OrderItemConverter;
+import com.example.ms.order.dto.OrderItemRequest;
+import com.example.ms.order.dto.OrderItemResponse;
 import com.example.ms.order.dto.OrderRequest;
 import com.example.ms.order.dto.OrderResponse;
 import com.example.ms.order.entity.Order;
+import com.example.ms.order.entity.OrderItem;
 import com.example.ms.order.enums.OrderStatus;
+import com.example.ms.order.mapper.OrderItemMapper;
 import com.example.ms.order.mapper.OrderMapper;
+import com.example.ms.product.entity.Product;
+import com.example.ms.product.mapper.ProductMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
 public class OrderService {
     private final OrderConverter orderConverter;
+    private final OrderItemConverter orderItemConverter;
     private final OrderMapper orderMapper;
+    private final OrderItemMapper orderItemMapper;
+    private final ProductMapper productMapper;
     private final RedisUtil redisUtil;
 
     @Transactional
     public OrderResponse create(OrderRequest request) {
-        Order order = orderConverter.toEntity(request);
-        order.setUserId(UserContext.getUserId());
+        int totalAmount = 0;
+        List<OrderItem> orderItems = new ArrayList<>();
+        for (OrderItemRequest item : request.getItems()) {
+            Product product = productMapper.selectById(item.getProductId());
+            if (product == null) {
+                throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "商品不存在");
+            }
+            int affected = productMapper.deductStock(product.getId(), item.getQuantity());
+            if (affected == 0) {
+                throw new BusinessException(ErrorCode.BAD_REQUEST, "商品库存不足：" + product.getName());
+            }
+            OrderItem orderItem = new OrderItem();
+            orderItem.setProductId(product.getId());
+            orderItem.setProductName(product.getName());
+            orderItem.setPrice(product.getPrice());
+            orderItem.setQuantity(item.getQuantity());
+            orderItem.setAmount(product.getPrice() * item.getQuantity());
+            totalAmount += orderItem.getAmount();
+            orderItems.add(orderItem);
+        }
+
+        Order order = new Order();
         order.setOrderNo("OD" + SnowflakeIdUtil.nextId());
+        order.setUserId(UserContext.getUserId());
+        order.setAmount(totalAmount);
         order.setStatus(OrderStatus.PENDING);
+        order.setRemark(request.getRemark());
         orderMapper.insert(order);
+
+        for (OrderItem orderItem : orderItems) {
+            orderItem.setOrderId(order.getId());
+            orderItemMapper.insert(orderItem);
+        }
         return orderConverter.toResponse(order);
     }
 
@@ -53,18 +93,12 @@ public class OrderService {
         if (order == null) {
             throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "订单不存在");
         }
-        return orderConverter.toResponse(order);
-    }
-
-    @Transactional
-    public OrderResponse update(Long id, OrderRequest request) {
-        Order order = orderMapper.selectById(id);
-        if (order == null) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "订单不存在");
-        }
-        orderConverter.updateEntity(request, order);
-        orderMapper.updateById(order);
-        return orderConverter.toResponse(order);
+        OrderResponse response = orderConverter.toResponse(order);
+        List<OrderItem> items = orderItemMapper.selectList(
+                new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, id));
+        List<OrderItemResponse> itemResponses = items.stream().map(orderItemConverter::toResponse).toList();
+        response.setItems(itemResponses);
+        return response;
     }
 
     @Transactional

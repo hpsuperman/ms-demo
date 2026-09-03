@@ -11,7 +11,7 @@
 
     <artifactId>ms-order</artifactId>
     <name>ms-order</name>
-    <description>订单服务（订单 CRUD，注册到 Nacos，端口 3084）</description>
+    <description>订单服务（商品/购物车/订单，注册到 Nacos，端口 3084）</description>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
