@@ -18,6 +18,7 @@
         <module>ms-gateway</module>
         <module>ms-approval</module>
         <module>ms-order</module>
+        <module>ms-stock</module>
     </modules>
 
     <properties>

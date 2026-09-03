@@ -4,8 +4,8 @@
 
 **ms-demo**：Maven 多模块分布式微服务学习项目（Spring Cloud Alibaba）。无固定业务主题，用于从 0 到 1 练习微服务落地。
 
-- **当前状态**：骨架已跑通，基础能力齐备——**Nacos 配置中心 / 网关统一 JWT 鉴权 / traceId 全链路日志 / Actuator 健康检查**均已落地。ms-user 已有注册/登录/验证码 + JWT + 部门/角色/公告业务；ms-file 已有 MinIO 上传/下载（完整）；ms-approval 已有请假申请 + 两级审批（主管→HR）+ 已办查询；ms-order 已有订单 CRUD
-- **当前目标**：逐个服务重建业务，一次一个服务，**数据库表结构自行设计**
+- **当前状态**：骨架已跑通，基础能力齐备——**Nacos 配置中心 / 网关统一 JWT 鉴权 / traceId 全链路日志 / Actuator 健康检查**均已落地。ms-user 已有注册/登录/验证码 + JWT + 部门/角色/公告业务；ms-file 已有 MinIO 上传/下载（完整）；ms-approval 已有请假申请 + 两级审批（主管→HR）+ 已办查询；ms-order 已有商品/购物车/订单（下单扣库存 + 支付/取消）
+- **当前目标**：逐个服务重建业务，一次一个服务，**数据库表结构自行设计**。**进行中：ms-stock 库存进销存**（供应商/采购入库已完成，销售出库进行中）
 - 技术栈：JDK 17 / Maven / Spring Boot 3.2.4 / Spring Cloud 2023.0.1 / Spring Cloud Alibaba 2023.0.1.0 / Nacos 2.3.2 / MyBatis Plus 3.5.12 / MySQL 8.0 / Redis / MinIO / Lombok / MapStruct
 
 ## 模块结构
@@ -17,7 +17,8 @@ ms-demo/
 ├── ms-user/        用户服务 3081：用户/部门/角色/公告 + JWT（已有业务）
 ├── ms-approval/    审批服务 3082：请假申请 + 主管→HR 两级审批
 ├── ms-file/        文件服务 3083：MinIO 上传/下载（完整）
-├── ms-order/       订单服务 3084：订单 CRUD（雪花 ID 订单号）
+├── ms-order/       订单服务 3084：商品/购物车/订单（下单扣库存 + 支付/取消）
+├── ms-stock/       库存服务 3085：进销存——供应商/采购入库（已完成）/销售出库（进行中）/库存流水
 └── ms-gateway/     网关 3080：路由 → lb://服务名 + 统一 JWT 鉴权 + traceId
 ```
 
@@ -32,6 +33,7 @@ ms-demo/
 | ms-approval | 3082 |
 | ms-file | 3083 |
 | ms-order | 3084 |
+| ms-stock | 3085 |
 
 ## 基础设施（本机已开机自启）
 
@@ -144,13 +146,60 @@ ms-demo/
 
 ## ms-order 业务现状
 
-### 订单模块（纯 CRUD）
-- **接口**：POST `/order` · GET `/order/page`（可按 status 过滤）· GET `/order/{id}` · PUT `/order/{id}` · DELETE `/order/{id}`
-- **功能**：创建（userId 取 `UserContext`，订单号 `"OD" + SnowflakeIdUtil.nextId()`，状态默认 PENDING）、分页（status 条件式拼接过滤）、详情、修改（全量覆盖）、软删除
-- **关键类**：OrderController / OrderService / OrderConverter(MapStruct) / OrderMapper
-- **实体**：Order（继承 BaseEntity），status 用枚举 OrderStatus（PENDING/PAID/CANCELED）；`@TableName("t_order")`；金额以「分」存 Integer
+### 商品模块
+- **接口**：POST `/order/product` · GET `/order/product/page`（可按 status 过滤）· GET `/order/product/{id}` · PUT `/order/product/{id}` · DELETE `/order/product/{id}`
+- **功能**：商品增删改查；status 枚举 ProductStatus（ON_SALE/OFF_SALE）；库存原子扣减
+- **关键类**：ProductController / ProductService / ProductConverter(MapStruct) / ProductMapper
+- **实体**：Product（继承 BaseEntity），`@TableName("t_product")`；name/price/stock/status；价格以「分」存 Integer；软删除
+- **库存扣减**：`ProductMapper.deductStock` 手写条件 UPDATE 原子扣——`UPDATE t_product SET stock=stock-#{quantity} WHERE id=#{id} AND stock>=#{quantity} AND deleted_at IS NULL`，返回受影响行数，0 即库存不足；因绕过 MP 逻辑删除，必须自带 `deleted_at IS NULL`
+- **表结构**：见 `V3__create_product_table.sql`（t_product）
+
+### 购物车模块
+- **接口**：POST `/order/cart` · GET `/order/cart`（分页）· PUT `/order/cart/{id}?quantity=` · DELETE `/order/cart/{id}`
+- **功能**：加购（同用户+同商品已存在则数量累加）、分页（仅本人，冗余 productName/productPrice/subtotal）、改数量（<1 拒绝）、删除；均按 userId 隔离
+- **关键类**：CartController / CartService / CartConverter(MapStruct) / CartMapper
+- **实体**：Cart（继承 BaseEntity），`@TableName("t_cart")`；userId/productId/quantity
+- **表结构**：见 `V4__create_cart_table.sql`（t_cart）
+
+### 订单模块（下单 → 支付/取消）
+- **接口**：POST `/order` · GET `/order/page`（可按 status 过滤）· GET `/order/{id}` · DELETE `/order/{id}` · PUT `/order/pay/{id}` · PUT `/order/cancel/{id}`
+- **流程**：下单（逐项校验商品存在 → 原子扣库存 → 汇总 amount → 落订单 + 明细）→ 支付（PENDING→PAID 记 paidAt）→ 取消（PENDING→CANCELED 记 canceledAt）；支付/取消用 Redis 分布式锁 `lock:order:{id}` 防并发
+- **关键类**：OrderController / OrderService / OrderConverter + OrderItemConverter(MapStruct) / OrderMapper / OrderItemMapper / ProductMapper
+- **实体**：Order（继承 BaseEntity），status 用枚举 OrderStatus（PENDING/PAID/CANCELED）；`@TableName("t_order")`；OrderItem（继承 BaseEntity）`@TableName("t_order_item")`：orderId/productId/productName/price/quantity/amount；金额以「分」存 Integer；明细快照商品名和单价（商品改价不影响历史订单）
+- **详情**：查明细按 order_id 组装 items 列表返回
 - **雪花 ID**：ms-common `SnowflakeIdUtil.nextId()` 生成订单号，多实例部署需 `init(workerId, datacenterId)` 区分
-- **表结构**：见 `V1__create_order_table.sql`（t_order）；Flyway history 表 flyway_order_history
+- **表结构**：`V1__create_order_table.sql`（t_order，原含 product_name/quantity，V5 已拆走）、`V2__add_paid_at_and_canceled_at_to_order.sql`（paid_at/canceled_at）、`V5__create_order_item_table.sql`（t_order 删冗余列 + 建 t_order_item）；Flyway history 表 flyway_order_history
+
+## ms-stock 业务现状
+
+### 进销存模块规划
+```
+进销存
+├── ① 供应商管理   已完成（档案 CRUD + 启停 + 软删）
+├── ② 采购入库     已完成（草稿→提交→入库→作废；入库时 Feign 加库存）
+├── ③ 销售出库     规划中：出库单：扣减库存 + 库存充足校验
+└── ④ 库存流水     规划中：每次出入库记一条流水，可查某商品历史进出
+```
+
+### ① 供应商管理（已完成）
+- **接口**：POST `/stock/supplier` · GET `/stock/supplier/page`（name 模糊 + status 过滤）· GET `/stock/supplier/{id}` · PUT `/stock/supplier/{id}` · PUT `/stock/supplier/{id}/status` · DELETE `/stock/supplier/{id}`
+- **功能**：name 唯一（Service 层 `selectCount` 查重，编辑排除自身 `.ne(id)` + DB 唯一约束）；status 枚举 ENABLED/DISABLED；软删除
+- **关键类**：SupplierController / SupplierService / SupplierConverter(MapStruct) / SupplierMapper
+- **实体**：Supplier（继承 BaseEntity），`@TableName("t_supplier")`
+- **表结构**：`V1__create_supplier_table.sql`；Flyway history 表 flyway_stock_history
+
+### ② 采购入库（已完成）
+- **接口**：POST `/stock/purchase` · PUT `/stock/purchase/{id}`（编辑草稿）· GET `/stock/purchase/page`（status 过滤）· GET `/stock/purchase/detail/{id}`（含明细）· PUT `/stock/purchase/submit/{id}` · PUT `/stock/purchase/stock/{id}`（入库）· PUT `/stock/purchase/cancel/{id}`
+- **流程**：建单（校验供应商 → Feign 查商品冗余商品名 → 落主单+明细，DRAFT）→ 提交（DRAFT→SUBMITTED）→ 入库（SUBMITTED→STOCKED，遍历明细 Feign 调 ms-order 加库存，记 stockedAt）；DRAFT/SUBMITTED 可作废；编辑草稿=删旧明细重建 + 重算金额
+- **状态机**：`DRAFT → SUBMITTED → STOCKED`；`DRAFT/SUBMITTED → CANCELED`（已入库不可作废）；非目标状态一律抛 BAD_REQUEST
+- **跨服务（Feign）**：`ProductClient(@FeignClient("ms-order"))` 调 `GET /order/product/{id}` 查商品 + `PUT /order/product/{id}/stock/increase` 加库存；ms-stock 自建 `ProductDTO` 接收（**不依赖 ms-order 模块**，跨服务只传 DTO）；Feign 直连服务名不走网关，接口本身无 JWT 校验
+- **关键类**：PurchaseController / PurchaseService / PurchaseConverter(MapStruct) / PurchaseOrderMapper / PurchaseOrderItemMapper / ProductClient
+- **实体**：PurchaseOrder（继承 BaseEntity）`@TableName("t_purchase_order")`：orderNo(PO+雪花ID)/supplierId/supplierName/totalAmount/status/remark/stockedAt；PurchaseOrderItem（继承 BaseEntity）`@TableName("t_purchase_order_item")`：orderId/productId/productName/price/quantity/amount；金额以「分」存 Integer
+- **表结构**：`V2__create_purchase_table.sql`（t_purchase_order + t_purchase_order_item）；明细表 order_id/product_id **不加唯一约束**（一单多商品、一商品多单），加 `INDEX idx_order_id`
+- **注意**：明细的 order_id 依赖 DB 自增主键回填 → create 必须「先 insert 主单拿 id，再插明细」
+
+### ③ 销售出库（规划中）
+- 出库单：扣减库存 + 库存充足校验；库存流水待后续
 
 ## 常用命令
 
@@ -178,6 +227,7 @@ java -jar ms-user/target/ms-user-1.0.0.jar  # 启动服务
 - **selectByIds 传空集合**：MP 批量查询不判空会生成 `WHERE id IN ()` 直接语法错误，批量查询前必须 `isEmpty()` 提前返回
 - **MP wrapper 嵌套 OR**：`and(w -> ...)` 生成括号隔离 OR（否则泄漏绕过软删除条件）；`.eq(布尔, 字段, 值)` 条件式拼接，false 时悬空 OR 自动丢弃
 - **created_at cannot be null**：`@TableField(fill=...)` 字段无条件进 INSERT 列，没配 MetaObjectHandler 就传 null 撞 NOT NULL。MybatisPlusConfig 已统一放 ms-common，新服务引 ms-common 即生效，不用再自己建
+- **openfeign 要配 loadbalancer**：Spring Cloud 2023 起 `spring-cloud-starter-openfeign` 不再默认带负载均衡，Feign 用 `lb://服务名` 报 `No Feign Client for loadBalancing defined`，需手动加 `spring-cloud-starter-loadbalancer`（ms-approval / ms-stock 都加了）
 
 ## 教学协作约定
 

@@ -1,18 +1,18 @@
-package com.example.ms.stock.dto;
+package com.example.ms.stock.supplier.dto;
 
-import com.example.ms.stock.enums.StockStatus;
+import com.example.ms.stock.supplier.enums.SupplierStatus;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
 @Data
-public class StockResponse {
+public class SupplierResponse {
     private Long id;
     private String name;
     private String contactPerson;
     private String contactPhone;
     private String address;
-    private StockStatus status;
+    private SupplierStatus status;
     private String remark;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
